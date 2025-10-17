@@ -1,0 +1,283 @@
+/*
+ * File     : dante_media.h
+ * Created  : March 2019
+ * Author   : Andrew White <andrew.white@audinate.com>
+ * Synopsis : Dante API types related to multiple media
+ *
+ * This software is copyright (c) 2019-2025 Audinate Pty Ltd and/or its licensors
+ *
+ * Audinate Copyright Header Version 1
+ */
+
+/**
+ * @file dante_media.h
+ * Generic Types and structures that describe different media types supported
+ * by Dante
+ */
+
+#ifndef _DANTE_MEDIA_H
+#define _DANTE_MEDIA_H
+
+#ifndef DAPI_FLAT_INCLUDE
+#include "dante_common.h"
+#include "dante_domains.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define DANTE_SECURE_FLOW_GROUP_NAME_MAX_LEN 48
+typedef char dante_secure_flow_group_name_t[DANTE_SECURE_FLOW_GROUP_NAME_MAX_LEN + 1];
+
+//----------------------------------------------------------
+// Dante media types
+//----------------------------------------------------------
+
+/**
+ * Enum representing the different distinct media types supported by Dante
+ *
+ * Media resources of a particular type exist in parallel to and independently
+ * from resources of other types.  They have their own ID space and namespace.
+ */
+typedef enum dante_media_type
+{
+	DANTE_MEDIA__UNDEF = 0,
+		//!< Unset or undefined media type
+	DANTE_MEDIA__ALL,
+		//<! All / any media type (for queries only)
+	DANTE_MEDIA__OTHER,
+		//!< media type not represented below
+	DANTE_MEDIA__AUDIO,
+		//!< audio data
+	DANTE_MEDIA__VIDEO,
+		//!< video data
+	DANTE_MEDIA__ANCIL,
+		//!< ancillary data
+
+	DANTE_MEDIA_TYPE_COUNT
+} dante_media_type_t;
+
+
+const char *
+dante_media_type_to_string(dante_media_type_t m);
+
+const char *
+dante_media_type_to_abbrev(dante_media_type_t m);
+
+dante_media_type_t
+dante_media_type_from_string(const char * m);
+
+
+//! Is this a distinct media type (such as AUDIO, VIDEO or ANCIL)?
+aud_bool_t
+dante_media_type_is_distinct(dante_media_type_t m);
+
+
+//----------------------------------------------------------
+// Encryption schemes
+//----------------------------------------------------------
+
+/**
+ * Describe encryption schemes supported by Dante media channels & flows
+ */
+typedef enum dante_encryption_scheme
+{
+	DANTE_ENCRYPTION__NONE = 0,
+		//!< Media resource is not encrypted
+
+	DANTE_ENCRYPTION__HDCP = 1,
+		//!< Media resource is encrypted using HDCP
+
+	DANTE_ENCRYPTION__AES_CTR256 = 2,
+		//!< Media resource is encrypted using AES CTR256
+} dante_encryption_scheme_t;
+
+const char *
+dante_encryption_scheme_to_string(dante_encryption_scheme_t encryption);
+
+dante_encryption_scheme_t
+dante_encryption_scheme_from_string(const char * m);
+
+
+//----------------------------------------------------------
+// External channel status
+//----------------------------------------------------------
+
+/**
+ * Dante media channels can have an 'external status'.
+ * This reports status information for the channel connected to the Dante
+ * system, rather than the part of the channel managed by Dante routing.
+ */
+
+enum dante_extstatus
+{
+	DANTE_EXTSTATUS__NONE = 0,
+		//!< Unsupported external status
+
+
+	// Codes from 0x001 to 0x0ff indicate a functioning channel (or variants thereof)
+
+	DANTE_EXTSTATUS__READY = 0x01,
+		//!< Resource is ready
+
+
+	// Codes from 0x100 to 0x1ff indicate a lack of status information
+
+	DANTE_EXTSTATUS__UNKNOWN = 0x100,
+		//!< Status unknown (and resource defaults to fail)
+
+
+	// Codes above 0x200 indicate various failure cases
+
+	DANTE_EXTSTATUS__NOT_READY = 0x200,
+		//!< Resource is not ready (generic error)
+	DANTE_EXTSTATUS__NOT_CONNECTED = 0x201,
+		//!< Resource is not connected
+	DANTE_EXTSTATUS__CONNECTION_BAD = 0x202,
+		//!< Resource seems to be connected but we cannot communicate with it
+	DANTE_EXTSTATUS__CONNECTION_UNSUPPORTED = 0x203,
+		//!< Resource is connected but we don't support it
+	DANTE_EXTSTATUS__INVALID_CONFIGURATION = 0x204,
+		//!< Resource configuration is invalid (wrong type?)
+	DANTE_EXTSTATUS__SYSTEM_FAILURE = 0x205,
+		//!< Catastrophic failure
+
+	DANTE_EXTSTATUS__NO_SIGNAL = 0x210,
+		//!< Channel appears to have no active signal
+	DANTE_EXTSTATUS__INVALID_SIGNAL = 0x211,
+		//!< Signal on channel not recognised
+
+ 	DANTE_EXTSTATUS__HDCP_NEGOTIATION_IN_PROGRESS = 0x220,
+		//!< Resource is under HDCP negotiation
+	DANTE_EXTSTATUS__HDCP_NEGOTIATION_FAILURE = 0x221,
+		//!< Resource fails HDCP negotiation
+ 	DANTE_EXTSTATUS__HDCP_INCOMPATIBLE_HDCP = 0x222,
+		//!< Resource has incompatiable HDCP signal
+
+
+	// Blocks of codes defined here for convenience
+
+	DANTE_EXTSTATUS_MIN__READY = 0x001,
+	DANTE_EXTSTATUS_MAX__READY = 0x0ff,
+
+	DANTE_EXTSTATUS_MIN__UNKNOWN = 0x100,
+	DANTE_EXTSTATUS_MAX__UNKNOWN = 0x1ff,
+
+	DANTE_EXTSTATUS_MIN__NOT_READY = 0x200,
+
+};
+
+typedef uint16_t dante_extstatus_t;
+
+const char *
+dante_extstatus_to_string(dante_extstatus_t status);
+
+const char *
+dante_model_extstatus_to_string(dante_extstatus_t status);
+
+dante_extstatus_t
+dante_model_extstatus_from_string(const char * m);
+
+const char *
+dante_extstatus_to_desc(dante_extstatus_t status);
+
+/**
+ * 32-bit token generated by the transmitter.
+ * It is used for HDCP key negotiation of encrypted video flow.
+ */
+typedef uint32_t dante_hdcp_token_t;
+
+
+//----------------------------------------------------------
+// Media Processing status
+//----------------------------------------------------------
+
+/**
+ * Dante RX media channels can have a 'processing status'.
+ * This reports status information for processing phases that occur after
+ * the data is extracted from the Dante flow until it is delivered to the
+ * external RX channels
+ */
+
+enum dante_media_processing_status
+{
+	DANTE_MEDIA_PROCESS_STATUS__NONE = 0,
+		//!< No processing status
+
+	DANTE_MEDIA_PROCESS_STATUS__OK = 1,
+		//!< Media is successfully being processed
+
+	DANTE_MEDIA_PROCESS_STATUS__UNKNOWN = 2,
+		//!< Media processing status unknown
+
+	DANTE_MEDIA_PROCESS_STATUS__INACTIVE = 3,
+		//!< Media processing is not active
+
+	DANTE_MEDIA_PROCESS_STATUS__ERR_UNKNOWN = 16,
+		//!< Processing reports unrecognised error
+
+	DANTE_MEDIA_PROCESS_STATUS__DEVICE_FAIL = 17,
+		//!< Failed to read process status from device
+
+	DANTE_MEDIA_PROCESS_STATUS__DEVICE_INIT_FAIL = 18,
+		//!< Device failed to initialise
+
+	DANTE_MEDIA_PROCESS_STATUS__HDCP_NEGOTIATION_FAIL = 19,
+		//!< HDCP Negotiation failed
+
+	DANTE_MEDIA_PROCESS_STATUS__CODEC_BAD = 32,
+		//!< Unrecognised or unreadable codec information
+
+	DANTE_MEDIA_PROCESS_STATUS__CODEC_MISMATCH = 33,
+		//!< Inbound codec does not match local codec
+
+	DANTE_MEDIA_PROCESS_STATUS__CODEC_PROFILE_MISMATCH = 34,
+		//!< Inbound codec profile does not match local codec profile
+
+	DANTE_MEDIA_PROCESS_STATUS__CODEC_FAIL = 35,
+		//!< Media codec failed to process data
+
+	DANTE_MEDIA_PROCESS_STATUS__FORMAT_BAD = 48,
+		//!< Unrecognised or unreadable media format
+
+	DANTE_MEDIA_PROCESS_STATUS__FORMAT_MISMATCH = 49,
+		//!< Inbound media format does not match channel format
+
+	DANTE_MEDIA_PROCESS_STATUS__DATA_FAIL = 64,
+		//!< Failure handling data
+
+	DANTE_MEDIA_PROCESS_STATUS__DATA_INVALID = 65,
+		//!< Data is invalid
+
+	DANTE_MEDIA_PROCESS_STATUS__SYNC_FAIL = 66,
+		//!< Codec failed to sync
+
+	DANTE_MEDIA_PROCESS_STATUS__BUFFER_OVERFLOW = 67,
+		//!< Buffer overflowed
+
+};
+
+typedef uint16_t dante_media_processing_status_t;
+
+const char *
+dante_media_processing_status_to_string(dante_media_processing_status_t status);
+
+dante_media_processing_status_t
+dante_media_processing_status_from_string(const char * m);
+
+const char *
+dante_media_processing_status_to_desc(dante_media_processing_status_t status);
+
+dante_flow_class_t
+dante_flow_class_from_string(const char * m);
+
+//----------------------------------------------------------
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
